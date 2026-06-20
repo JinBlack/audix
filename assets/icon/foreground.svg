@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- Headphones scaled to sit inside the Android adaptive-icon safe zone. -->
+  <g transform="translate(512,512) scale(0.82) translate(-512,-512)">
+    <path d="M252,540 C252,232 772,232 772,540" fill="none" stroke="#FFFFFF" stroke-width="90" stroke-linecap="round"/>
+    <rect x="177" y="510" width="150" height="280" rx="64" fill="#FFFFFF"/>
+    <rect x="697" y="510" width="150" height="280" rx="64" fill="#FFFFFF"/>
+  </g>
+</svg>
