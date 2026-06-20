@@ -31,6 +31,11 @@ final serversProvider = StreamProvider<List<Server>>(
   (ref) => ref.watch(databaseProvider).watchServers(),
 );
 
+/// All bookmarks across books, newest first.
+final allBookmarksProvider = StreamProvider<List<BookmarkEntry>>(
+  (ref) => ref.watch(databaseProvider).watchAllBookmarks(),
+);
+
 final bookFinalizerProvider = Provider<BookFinalizer>(
   (ref) => BookFinalizer(ref.watch(databaseProvider)),
 );

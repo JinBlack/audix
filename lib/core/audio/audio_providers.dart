@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:audio_service/audio_service.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rxdart/rxdart.dart';
 
@@ -52,6 +53,13 @@ final currentChaptersProvider = FutureProvider<List<Chapter>>((ref) async {
   final id = ref.watch(currentBookIdProvider);
   if (id == null) return const [];
   return ref.watch(databaseProvider).chaptersFor(id);
+});
+
+/// Bookmarks of the currently loaded book, ordered by position.
+final currentBookmarksProvider = StreamProvider<List<Bookmark>>((ref) {
+  final id = ref.watch(currentBookIdProvider);
+  if (id == null) return Stream.value(const []);
+  return ref.watch(databaseProvider).watchBookmarks(id);
 });
 
 /// Remaining time on the sleep timer, or null when it is off.
@@ -163,6 +171,23 @@ class PlayerController {
   Future<void> setSpeed(double speed) async {
     await handler.setSpeed(speed);
     await _saveNow();
+  }
+
+  /// Adds a bookmark at the current position; returns the new bookmark id.
+  Future<int?> addBookmark() async {
+    final id = _bookId;
+    if (id == null) return null;
+    return db.addBookmark(BookmarksCompanion.insert(
+      bookId: id,
+      positionMs: handler.position.inMilliseconds,
+      chapterIndex: Value(handler.currentChapter),
+    ));
+  }
+
+  /// Opens [book] and seeks to a bookmark position.
+  Future<void> openBookmark(Book book, int positionMs) async {
+    await openBook(book);
+    await handler.seek(Duration(milliseconds: positionMs));
   }
 
   // ------------------------------------------------------------ sleep timer

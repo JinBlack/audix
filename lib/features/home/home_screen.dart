@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../bookmarks/bookmarks_screen.dart';
 import '../library/library_screen.dart';
 import '../player/mini_player.dart';
 import '../servers/servers_screen.dart';
@@ -17,6 +18,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   static const _screens = [
     LibraryScreen(),
+    BookmarksScreen(),
     ServersScreen(),
     SettingsScreen(),
   ];
@@ -38,6 +40,11 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: Icon(Icons.library_books_outlined),
             selectedIcon: Icon(Icons.library_books),
             label: 'Library',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.bookmark_outline),
+            selectedIcon: Icon(Icons.bookmark),
+            label: 'Bookmarks',
           ),
           NavigationDestination(
             icon: Icon(Icons.dns_outlined),

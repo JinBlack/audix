@@ -58,16 +58,30 @@ class Playback extends Table {
   Set<Column> get primaryKey => {bookId};
 }
 
-@DriftDatabase(tables: [Servers, Books, Chapters, Playback])
+@DataClassName('Bookmark')
+class Bookmarks extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get bookId =>
+      integer().references(Books, #id, onDelete: KeyAction.cascade)();
+  IntColumn get positionMs => integer()();
+  IntColumn get chapterIndex => integer().withDefault(const Constant(0))();
+  TextColumn get note => text().nullable()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+@DriftDatabase(tables: [Servers, Books, Chapters, Playback, Bookmarks])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
       : super(executor ?? driftDatabase(name: 'audix'));
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
+        onUpgrade: (m, from, to) async {
+          if (from < 2) await m.createTable(bookmarks);
+        },
         beforeOpen: (details) async {
           // Required so KeyAction.cascade foreign keys are enforced.
           await customStatement('PRAGMA foreign_keys = ON');
@@ -204,6 +218,37 @@ class AppDatabase extends _$AppDatabase {
   Future<void> setBookCover(int id, String coverPath) =>
       (update(books)..where((b) => b.id.equals(id)))
           .write(BooksCompanion(coverPath: Value(coverPath)));
+
+  // -------------------------------------------------------------- Bookmarks
+  Stream<List<Bookmark>> watchBookmarks(int bookId) => (select(bookmarks)
+        ..where((b) => b.bookId.equals(bookId))
+        ..orderBy([(b) => OrderingTerm(expression: b.positionMs)]))
+      .watch();
+
+  Future<int> addBookmark(BookmarksCompanion bookmark) =>
+      into(bookmarks).insert(bookmark);
+
+  Future<void> updateBookmarkNote(int id, String? note) =>
+      (update(bookmarks)..where((b) => b.id.equals(id)))
+          .write(BookmarksCompanion(note: Value(note)));
+
+  Future<void> deleteBookmark(int id) =>
+      (delete(bookmarks)..where((b) => b.id.equals(id))).go();
+
+  /// All bookmarks across books (newest first), each with its book.
+  Stream<List<BookmarkEntry>> watchAllBookmarks() {
+    final query = select(bookmarks).join(
+      [innerJoin(books, books.id.equalsExp(bookmarks.bookId))],
+    )..orderBy([OrderingTerm.desc(bookmarks.createdAt)]);
+    return query.watch().map(
+          (rows) => rows
+              .map((r) => BookmarkEntry(
+                    bookmark: r.readTable(bookmarks),
+                    book: r.readTable(books),
+                  ))
+              .toList(),
+        );
+  }
 }
 
 /// A library row: a book plus its saved playback position (if any).
@@ -217,4 +262,12 @@ class LibraryEntry {
   final Book book;
   final int positionMs;
   final DateTime? updatedAt;
+}
+
+/// A bookmark together with the book it belongs to (for the global list).
+class BookmarkEntry {
+  const BookmarkEntry({required this.bookmark, required this.book});
+
+  final Bookmark bookmark;
+  final Book book;
 }

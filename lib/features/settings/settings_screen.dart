@@ -84,7 +84,7 @@ class SettingsScreen extends ConsumerWidget {
           AboutListTile(
             icon: const Icon(Icons.info_outline),
             applicationName: 'Audix',
-            applicationVersion: '1.1.0',
+            applicationVersion: '1.2.0',
             applicationLegalese: 'Audiobook player with cue-based chapters.',
             aboutBoxChildren: const [
               SizedBox(height: 12),

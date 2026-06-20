@@ -7,6 +7,7 @@ import '../../core/audio/audio_providers.dart';
 import '../../core/database/database.dart';
 import '../../core/settings/settings_controller.dart';
 import '../../core/util/format.dart';
+import '../bookmarks/bookmarks_sheet.dart';
 
 const _speeds = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0];
 
@@ -19,6 +20,20 @@ class PlayerScreen extends ConsumerStatefulWidget {
 
 class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   double? _dragMs;
+  ScaffoldMessengerState? _messenger;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _messenger = ScaffoldMessenger.of(context);
+  }
+
+  @override
+  void dispose() {
+    // Don't let the "Bookmark added" snackbar linger over other screens.
+    _messenger?.clearSnackBars();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,6 +61,11 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       appBar: AppBar(
         title: const Text('Now Playing'),
         actions: [
+          IconButton(
+            tooltip: 'Bookmarks',
+            icon: const Icon(Icons.bookmarks_outlined),
+            onPressed: () => showBookmarksSheet(context),
+          ),
           if (chapters.isNotEmpty)
             IconButton(
               tooltip: 'Chapters',
@@ -132,6 +152,11 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                     icon: const Icon(Icons.speed),
                     label: Text('${_trim(speed)}x'),
                     onPressed: () => _showSpeed(context, controller, speed),
+                  ),
+                  TextButton.icon(
+                    icon: const Icon(Icons.bookmark_add_outlined),
+                    label: const Text('Bookmark'),
+                    onPressed: () => _addBookmark(context, controller),
                   ),
                   TextButton.icon(
                     icon: Icon(
@@ -254,6 +279,28 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       ),
     );
   }
+
+  Future<void> _addBookmark(
+      BuildContext context, PlayerController controller) async {
+    final messenger = _messenger;
+    final id = await controller.addBookmark();
+    if (id == null || messenger == null || !mounted) return;
+    messenger.clearSnackBars();
+    final snackBar = messenger.showSnackBar(SnackBar(
+      content: const Text('Bookmark added'),
+      behavior: SnackBarBehavior.floating,
+      duration: const Duration(seconds: 3),
+      action: SnackBarAction(
+        label: 'Add note',
+        onPressed: () {
+          if (mounted) showBookmarkNoteDialog(context, ref, id, null);
+        },
+      ),
+    ));
+    // Some accessibility services keep snackbars open indefinitely; force-close.
+    Future<void>.delayed(const Duration(seconds: 3), snackBar.close);
+  }
+
 }
 
 class _Cover extends StatelessWidget {

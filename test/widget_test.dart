@@ -19,6 +19,8 @@ void main() {
           libraryEntriesProvider
               .overrideWith((ref) => Stream.value(const <LibraryEntry>[])),
           serversProvider.overrideWith((ref) => Stream.value(const <Server>[])),
+          allBookmarksProvider
+              .overrideWith((ref) => Stream.value(const <BookmarkEntry>[])),
           mediaItemProvider.overrideWith((ref) => Stream.value(null)),
           sharedPreferencesProvider.overrideWithValue(prefs),
         ],
