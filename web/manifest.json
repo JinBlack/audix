@@ -1,11 +1,11 @@
 {
-    "name": "audix",
-    "short_name": "audix",
+    "name": "Audix",
+    "short_name": "Audix",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#5B4FCF",
+    "theme_color": "#5B4FCF",
+    "description": "Audiobook player with cue-based chapters and server downloads.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

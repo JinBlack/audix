@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- Maskable web icon: gradient background + headphones scaled into the
+       central safe zone so launchers can crop to a circle/squircle. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6E62E6"/>
+      <stop offset="1" stop-color="#4A3DB0"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <g transform="translate(512,512) scale(0.78) translate(-512,-512)">
+    <path d="M252,540 C252,232 772,232 772,540" fill="none" stroke="#FFFFFF" stroke-width="90" stroke-linecap="round"/>
+    <rect x="177" y="510" width="150" height="280" rx="64" fill="#FFFFFF"/>
+    <rect x="697" y="510" width="150" height="280" rx="64" fill="#FFFFFF"/>
+  </g>
+</svg>
