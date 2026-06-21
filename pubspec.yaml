@@ -73,6 +73,14 @@ flutter_launcher_icons:
   adaptive_icon_background: "assets/icon/icon_background.png"
   adaptive_icon_foreground: "assets/icon/icon_foreground.png"
 
+# Load SQLite from the system library (libsqlite3.so bundled by
+# sqlite3_flutter_libs) instead of having the sqlite3 build hook download a
+# prebuilt binary from GitHub — required for a hermetic, offline Nix build.
+hooks:
+  user_defines:
+    sqlite3:
+      source: system
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 

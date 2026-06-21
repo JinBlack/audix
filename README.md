@@ -34,6 +34,30 @@ flutter analyze
 flutter test
 ```
 
+## Nix
+
+```bash
+nix run github:JinBlack/audix    # build and serve the web app
+nix build github:JinBlack/audix  # build the arm64-v8a APK (-> result/)
+```
+
+Builds are reproducible and offline; dependencies are vendored as fixed-output
+derivations. CI builds the APK and web app and publishes both to the release.
+
+## Web (experimental)
+
+Library, bookmarks and settings work on the web (import/download are
+mobile-only). drift runs via wasm; `nix run` / `nix build .#web` fetch
+`drift_worker.js` + `sqlite3.wasm` automatically. To build manually, fetch them
+first:
+
+```bash
+tool/web/fetch-web-deps.sh && flutter build web
+```
+
+A Playwright smoke test (`tool/web/smoke_test.py`) loads the built app, navigates
+every tab and records a video; CI runs it and attaches the video to the release.
+
 ## Project layout
 
 ```
