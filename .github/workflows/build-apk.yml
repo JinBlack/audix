@@ -1,0 +1,135 @@
+name: Build & Release
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+# Allow the workflow to publish releases.
+permissions:
+  contents: write
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The Nix build pulls a full Android SDK (NDK + CMake), Flutter and the
+      # vendored dependency sets — more than the runner's stock free space.
+      - name: Free up disk space
+        run: |
+          sudo rm -rf \
+            /usr/share/dotnet \
+            /usr/local/lib/android \
+            /opt/ghc /usr/local/.ghcup \
+            /opt/hostedtoolcache \
+            /usr/local/share/boost \
+            "$AGENT_TOOLSDIRECTORY" || true
+          df -h /
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Build the arm64-v8a APK
+        run: nix build .#default -L --print-build-logs
+
+      - name: Stage APK
+        run: |
+          mkdir -p dist
+          cp -L result/*.apk dist/
+          ls -l dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apk
+          path: dist/*.apk
+          if-no-files-found: error
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Free up disk space
+        run: |
+          sudo rm -rf \
+            /usr/share/dotnet \
+            /usr/local/lib/android \
+            /opt/ghc /usr/local/.ghcup \
+            /opt/hostedtoolcache \
+            /usr/local/share/boost \
+            "$AGENT_TOOLSDIRECTORY" || true
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Build the web app (offline, via Nix)
+        run: nix build .#web -L --print-build-logs
+
+      - name: Set up Playwright + Chromium
+        run: |
+          python3 -m pip install --break-system-packages --quiet playwright
+          python3 -m playwright install ffmpeg
+          CHROME="$(nix build nixpkgs#chromium --no-link --print-out-paths)/bin/chromium"
+          echo "CHROME=$CHROME" >> "$GITHUB_ENV"
+
+      - name: Serve + Playwright smoke test (records a video)
+        run: |
+          mkdir -p dist shots
+          python3 tool/web/serve.py 8087 "$(readlink -f result)" &
+          for i in $(seq 1 20); do
+            curl -fsS -o /dev/null "http://127.0.0.1:8087/index.html" && break
+            sleep 1
+          done
+          python3 tool/web/smoke_test.py "http://127.0.0.1:8087/" "$CHROME" shots dist
+          ls -l dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-smoke-video
+          path: dist/audix-web-smoke.webm
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: web-smoke-screenshots
+          path: shots/*.png
+          if-no-files-found: ignore
+
+  release:
+    needs: [apk, web]
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Publish release (APK + web smoke-test video)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p dist
+          cp artifacts/apk/*.apk dist/
+          cp artifacts/web-smoke-video/*.webm dist/
+          ls -l dist
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            TAG="$GITHUB_REF_NAME"; PRERELEASE=""; TITLE="Audix $TAG"
+          else
+            TAG="latest"; PRERELEASE="--prerelease"; TITLE="Audix (latest build)"
+            gh release delete "$TAG" --yes --cleanup-tag 2>/dev/null || true
+          fi
+          gh release create "$TAG" dist/* \
+            $PRERELEASE \
+            --target "$GITHUB_SHA" \
+            --title "$TITLE" \
+            --notes "Automated arm64-v8a APK (\`nix build .#default\`) plus a Playwright smoke-test video of the web build (\`nix build .#web\`). Commit \`$GITHUB_SHA\`."
